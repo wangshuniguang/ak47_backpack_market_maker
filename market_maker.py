@@ -198,7 +198,7 @@ class ProfessionalMarketMaker:
             return True
 
         try:
-            real_position = await self.exchange_client.get_account_positions()
+            real_position, _ = self.exchange_client.get_account_positions()
             self.real_q = float(real_position)
             self.q = self.real_q
             self.last_position_sync = current_time

@@ -334,19 +334,25 @@ class BackpackClient(object):
         except Exception:
             return []
 
-    async def get_account_positions(self) -> Decimal:
-        try:
-            positions_data = self.account_client.get_open_positions()
-            position_amt = 0
-            for position in positions_data:
-                if position.get('symbol', '') == self.contract_id:
-                    position_amt = Decimal(position.get('netQuantity', 0))
-                    break
-            return position_amt
-        except Exception as e:
-            self.logger.warning(f'exception in get account positions: {e}')
+    def get_account_positions(self) -> Tuple[Decimal, Decimal]:
+        """Get account positions using official SDK."""
+        position_amt = 0
+        position_entry_price = 0
+        positions_data = None
+        for i in range(30):
+            try:
+                positions_data = self.account_client.get_open_positions()
+                for position in positions_data:
+                    if position.get('symbol', '') == self.contract_id:
+                        position_amt = abs(Decimal(position.get('netQuantity', 0)))
+                        position_entry_price = abs(Decimal(position.get('entryPrice', 0)))
+                        break
 
-        raise Exception(f'failed to get position')
+                return position_amt, position_entry_price
+            except Exception as e:
+                print(f'exception in get account positions: {e}, position data: {positions_data}')
+
+        return position_amt, position_entry_price
 
     async def update_contract_attributes(self) -> Tuple[str, Decimal, Decimal]:
         """Get contract ID for a ticker."""

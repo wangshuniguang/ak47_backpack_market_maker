@@ -9,3 +9,4 @@ class TradingConfig:
     ticker: str
     public_key: str
     secret_key: str
+
