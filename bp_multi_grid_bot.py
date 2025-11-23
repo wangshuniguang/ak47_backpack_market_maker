@@ -250,7 +250,7 @@ class TradingBot:
                 f'contract id: {self.contract_id}, '
                 f'tick size: {self.tick_size}')
 
-            sleep_times = 5
+            sleep_times = 30
             await self.close_all_active_open_orders()
 
             while True:
