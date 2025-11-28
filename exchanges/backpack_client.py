@@ -158,6 +158,11 @@ class BackpackClient(object):
                 time_in_force=order_type
             )
 
+            self.logger.info(
+                f'sell market order execute result: {order_result},'
+                f'contract id: {contract_id}, '
+                f'quantity: {quantity}')
+
             if not order_result:
                 self.logger.info(
                     f'exception in place market order, symbol: {contract_id}, '
@@ -250,6 +255,11 @@ class BackpackClient(object):
                 post_only=False,
                 time_in_force=order_type
             )
+
+            self.logger.info(
+                f'buy market order execute result: {order_result},'
+                f'contract id: {contract_id}, '
+                f'quantity: {quantity}')
 
             if not order_result:
                 self.logger.info(
