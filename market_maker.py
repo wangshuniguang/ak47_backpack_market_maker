@@ -504,12 +504,12 @@ class ProfessionalMarketMaker:
             # 执行真实对冲订单
             if self.real_q > 0:
                 # 卖出对冲
-                order_id = await self.exchange_client.place_sell_market_order(
+                order_id = await self.exchange_client.close_position_with_market_order(
                     self.contract_id, hedge_size_sol)  # 略低于市价
             else:
                 # 买入对冲
-                order_id = await self.exchange_client.place_buy_market_order(
-                    self.contract_id, hedge_size_sol)  # 略高于市价
+                order_id = await self.exchange_client.close_position_with_market_order(
+                    self.contract_id, -hedge_size_sol)  # 略高于市价
 
             self.logger.info(
                 f'Market Order ID: {order_id}, '

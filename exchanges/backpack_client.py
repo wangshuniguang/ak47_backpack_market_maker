@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from bpx.account import Account
 from bpx.constants.enums import OrderTypeEnum, TimeInForceEnum
@@ -92,6 +92,23 @@ class BackpackClient(object):
 
     async def get_recent_trades(self, contract_id, limit):
         return self.public_client.get_recent_trades(contract_id, limit)
+
+    async def get_account_all_positions(self) -> List[Dict]:
+        account_positions = []
+        positions_data = None
+        try:
+            positions_data = self.account_client.get_open_positions()
+            for position in positions_data:
+                account_positions.append({
+                    'symbol': position.get('symbol', ''),
+                    'netQuantity': Decimal(position.get('netQuantity', 0))
+                })
+        except Exception as e:
+            self.logger.info(
+                f'exception in get account all positions: {e}, '
+                f'positions data: {positions_data}')
+
+        return account_positions
 
     async def place_sell_limit_order(self, contract_id, order_price, quantity, order_type=TimeInForceEnum.GTC):
         self.logger.info(
@@ -231,6 +248,57 @@ class BackpackClient(object):
 
         return None
 
+    async def close_position_with_market_order(self, contract_id, real_position):
+        quantity = abs(real_position)
+        side = 'Bid' if real_position < 0 else 'Ask'
+
+        self.logger.info(
+            f'close position with market order, contract id: {contract_id}, '
+            f'real position: {real_position}, '
+            f'quantity: {quantity}, '
+            f'side: {side}')
+
+        try:
+            align_quantity = BackpackClient.align_floor(quantity, self.min_quantity)
+        except Exception as e:
+            self.logger.warning(
+                f'exception in align: {e}, quantity: {quantity}, min quantity: {self.min_quantity}')
+            align_quantity = round(quantity, 4)
+
+        try:
+            order_result = self.custom_client.execute_order(
+                symbol=contract_id,
+                side=side,
+                order_type=OrderTypeEnum.MARKET,
+                quantity=str(align_quantity),
+                post_only=False,
+                reduce_only=True
+            )
+
+            self.logger.info(
+                f'buy market order execute result: {order_result},'
+                f'contract id: {contract_id}, '
+                f'quantity: {quantity}')
+
+            if not order_result:
+                self.logger.info(
+                    f'exception in place order, symbol: {contract_id}, '
+                    f'quantity: {align_quantity}, ')
+
+            if 'code' in order_result:
+                message = order_result.get('message', 'Unknown error')
+                self.logger.warning(f"[OPEN] Error placing order: {message}")
+                return
+
+            order_id = order_result.get('id')
+            if not order_id:
+                self.logger.error(f"[OPEN] No order ID in response: {order_result}")
+            return order_id
+        except Exception as e:
+            self.logger.info(f'exception in batch place orders: {e}')
+
+        return None
+
     async def place_buy_market_order(
             self, contract_id, quantity,
             order_type=TimeInForceEnum.GTC):
@@ -355,7 +423,7 @@ class BackpackClient(object):
                 positions_data = self.account_client.get_open_positions()
                 for position in positions_data:
                     if position.get('symbol', '') == self.contract_id:
-                        position_amt = abs(Decimal(position.get('netQuantity', 0)))
+                        position_amt = Decimal(position.get('netQuantity', 0))
                         position_entry_price = abs(Decimal(position.get('entryPrice', 0)))
                         break
 
