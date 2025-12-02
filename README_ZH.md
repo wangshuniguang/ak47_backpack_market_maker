@@ -49,8 +49,3 @@ backpack_Q_max： 最大库存，最好是backpack_risk_threshold * 2，这个�
 ### 问题反馈
 欢迎关注个人推特：https://x.com/dog_gold70695
 
-如果你觉得这个项目对你有用，欢迎打赏：
-![f7c6262bde87aa5a11a7f5a59c1ddbb9](https://github.com/user-attachments/assets/69fc2a8c-2e0b-4109-a1e1-214f6e9dce24)
-
-
-
