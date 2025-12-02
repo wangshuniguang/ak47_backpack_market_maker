@@ -2,6 +2,7 @@
 
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 from typing import List, Tuple, Dict
+import asyncio
 
 from bpx.account import Account
 from bpx.constants.enums import OrderTypeEnum, TimeInForceEnum
@@ -92,6 +93,39 @@ class BackpackClient(object):
 
     async def get_recent_trades(self, contract_id, limit):
         return self.public_client.get_recent_trades(contract_id, limit)
+
+    async def get_account_balance(self):
+        return self.account_client.get_balances()
+
+    async def get_historic_trade(self, contract_id):
+        all_trades = []
+        start_idx = 0
+        length = 1000
+        while True:
+            try:
+                current_trades = self.account_client.get_fill_history(
+                    contract_id,
+                    length,
+                    start_idx
+                )
+
+                if isinstance(current_trades, list):
+                    start_idx += len(current_trades)
+                    all_trades.extend(current_trades)
+                elif isinstance(current_trades, dict) and 'code' in current_trades:
+                    print(f'start index: {start_idx}, len: {len(current_trades)}, {current_trades}')
+
+                print(f'start index: {start_idx}, len: {len(current_trades)}')
+
+                if len(current_trades) < length:
+                    break
+
+                await asyncio.sleep(5)
+
+            except Exception as e:
+                self.logger.warning(f'exception in process history record: {e}')
+
+        return all_trades
 
     async def get_account_all_positions(self) -> List[Dict]:
         account_positions = []
