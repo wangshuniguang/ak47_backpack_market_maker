@@ -562,7 +562,7 @@ class ProfessionalMarketMaker:
         self.order_manager.update_contract_id(self.contract_id)
 
         recent_returns = []
-        t = 0.03  # 30ms循环，避免过频
+        t = 1.0  # 30ms循环，避免过频
 
         reinit_q_max = False
 

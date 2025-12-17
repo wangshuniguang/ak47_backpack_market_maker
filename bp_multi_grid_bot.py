@@ -120,6 +120,8 @@ class TradingBot:
                         curr_quantity
                     )
 
+                time.sleep(0.1)
+
             return True
 
         except Exception as e:
@@ -185,6 +187,7 @@ class TradingBot:
                 order_id = self.active_close_orders[i].get('id')
                 cancel_order_result = await self.exchange_client.cancel_order(order_id)
                 self.logger.info(f'cancel order: {order_id}, cancel order result: {cancel_order_result}')
+                time.sleep(0.1)
             except Exception as e:
                 self.logger.warning(f'exception in cancel order: {e}')
 

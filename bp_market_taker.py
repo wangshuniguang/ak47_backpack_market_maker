@@ -70,7 +70,7 @@ class ProfessionalMarketTaker:
         self.contract_id, self.tick_size, self.min_quantity = await self.exchange_client.update_contract_attributes()
 
         recent_returns = []
-        t = 0.03  # 30ms循环，避免过频
+        t = 5  # 30ms循环，避免过频
         execute_cnt = 0
 
         while True:
@@ -112,7 +112,7 @@ class ProfessionalMarketTaker:
                         f'choice: {result}, '
                         f'quantity: {quantity}, order id: {order_id}')
 
-                await asyncio.sleep(t)
+                await asyncio.sleep(random.randint(5, 10))
                 execute_cnt += 0
 
             except Exception as e:
