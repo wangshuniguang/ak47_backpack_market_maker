@@ -130,7 +130,7 @@ class TradingBot:
             return False
 
     async def _handle_place_close_order(self, amount: Decimal, avg_price: Decimal):
-        if amount <= 0:
+        if abs(amount) < self.min_quantity:
             self.logger.info(f'there is no position, skip it. amount: {amount}, avg price: {avg_price}')
             return True
 
