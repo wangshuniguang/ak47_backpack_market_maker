@@ -273,11 +273,12 @@ class ProfessionalMarketMaker:
 
     def _adjust_parameters_by_regime(self):
         """基于市场状态的参数调整"""
+        # spread都放大4倍
         multipliers = {
-            MarketRegime.NORMAL: {'gamma': 1.0, 'Q_max': 2.0, 'order_size': 1.0, 'spread': 1.0},
-            MarketRegime.HIGH_VOL: {'gamma': 1.4, 'Q_max': 1.2, 'order_size': 0.5, 'spread': 1.8},
-            MarketRegime.LOW_VOL: {'gamma': 0.7, 'Q_max': 2.6, 'order_size': 1.4, 'spread': 0.7},
-            MarketRegime.STRESS: {'gamma': 2.0, 'Q_max': 0.8, 'order_size': 0.3, 'spread': 2.5}
+            MarketRegime.NORMAL: {'gamma': 1.0, 'Q_max': 2.0, 'order_size': 1.0, 'spread': 1.0 * 4},
+            MarketRegime.HIGH_VOL: {'gamma': 1.4, 'Q_max': 1.2, 'order_size': 0.5, 'spread': 1.8 * 4},
+            MarketRegime.LOW_VOL: {'gamma': 0.7, 'Q_max': 2.6, 'order_size': 1.4, 'spread': 0.7 * 4},
+            MarketRegime.STRESS: {'gamma': 2.0, 'Q_max': 0.8, 'order_size': 0.3, 'spread': 2.5 * 4}
         }
 
         mult = multipliers[self.market_regime]
@@ -581,7 +582,8 @@ class ProfessionalMarketMaker:
 
                 if not bids or not asks:
                     self.logger.warning("买卖盘数据不完整，跳过")
-                    await asyncio.sleep(t)
+                    # TODO: sleep时间变长些
+                    await asyncio.sleep(3)
                     continue
 
                 # 构建订单簿
