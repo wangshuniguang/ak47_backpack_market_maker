@@ -40,7 +40,7 @@ class RiskParameters:
     sigma: float = 0.30
     phi: float = 0.005
     rebate_rate: float = 1 / 10000  # 0.3 bps
-    spread_multiplier: float = 1.5
+    spread_multiplier: float = 1.0
 
 
 class OrderManager:
@@ -138,7 +138,9 @@ class ProfessionalMarketMaker:
     def __init__(
             self,
             risk_params: Optional[RiskParameters] = None,
-            config: TradingConfig = None):
+            config: TradingConfig = None,
+            sleep_seconds: float = 1.0
+    ):
 
         self.risk_params = risk_params or RiskParameters()
         self.prev_ema_s = 0.0
@@ -194,6 +196,8 @@ class ProfessionalMarketMaker:
         self.logger = logger
         self.last_position_sync = 0
         self.position_sync_interval = 1  # 头寸同步间隔(秒)
+
+        self.sleep_seconds = sleep_seconds
 
         self.logger.info(f"专业MM优化版初始化完成")
 
@@ -562,7 +566,9 @@ class ProfessionalMarketMaker:
         self.order_manager.update_contract_id(self.contract_id)
 
         recent_returns = []
-        t = 1.0  # 30ms循环，避免过频
+        t = self.sleep_seconds
+
+        logger.info(f'主程序启动，当前报价间隔: {t}, 报价价差倍数: {self.risk_params.spread_multiplier}')
 
         reinit_q_max = False
 
@@ -588,7 +594,7 @@ class ProfessionalMarketMaker:
                 min_ask = min(asks)
                 max_bid = max(bids)
                 s = (max_bid + min_ask) / 2.0
-                self.current_spread = min_ask - max_bid
+                self.current_spread = (min_ask - max_bid) * self.risk_params.spread_multiplier
 
                 if not reinit_q_max:
                     if self.risk_params.base_order_size_usd <= 10:
@@ -660,6 +666,18 @@ if __name__ == "__main__":
         help="Order size per trade"
     )
 
+    parser.add_argument(
+        '-sp', '--spread-multi',
+        default=1.0,
+        help='spread multi'
+    )
+
+    parser.add_argument(
+        '-ss', '--sleep-seconds',
+        default=1.0,
+        help='sleep seconds'
+    )
+
     # 解析参数
     args = parser.parse_args()
     logger.info("args:")
@@ -672,19 +690,31 @@ if __name__ == "__main__":
     _secret_key = args.secret
     _base_order_size_usd = float(args.order_size)
 
+    _spread_multi = float(args.spread_multi)
+    if _spread_multi <= 1:
+        _spread_multi = 1
+
+    _sleep_seconds = float(args.sleep_seconds)
+    if _sleep_seconds <= 0.3:
+        _sleep_seconds = 0.3
+
     logger.info(
         f'finished init market maker config, '
         f'ticker: {_ticker}, '
         f'market type: {_market_type}, '
         f'public key: {_public_key}, '
         f'public secret: {_secret_key}, '
-        f'base order size usd: {_base_order_size_usd}')
+        f'base order size usd: {_base_order_size_usd}, '
+        f'spread multi: {_spread_multi}, '
+        f'sleep seconds: {_sleep_seconds}')
 
     # backpack_Q_max, backpack_risk_threshold 这两个参数会在程序中重新调整，忽略它们。
     params = RiskParameters(
         Q_max=backpack_Q_max,
         risk_threshold=backpack_risk_threshold,
-        base_order_size_usd=_base_order_size_usd)
+        base_order_size_usd=_base_order_size_usd,
+        spread_multiplier=_spread_multi
+    )
 
     _config = TradingConfig(
         ticker=_ticker,
@@ -693,5 +723,5 @@ if __name__ == "__main__":
         secret_key=_secret_key
     )
 
-    mm = ProfessionalMarketMaker(risk_params=params, config=_config)
+    mm = ProfessionalMarketMaker(risk_params=params, config=_config, sleep_seconds = _sleep_seconds)
     asyncio.run(mm.run())
