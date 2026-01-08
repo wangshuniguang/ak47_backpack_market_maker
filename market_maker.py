@@ -277,6 +277,7 @@ class ProfessionalMarketMaker:
 
     def _adjust_parameters_by_regime(self):
         """基于市场状态的参数调整"""
+        # spread都放大4倍
         multipliers = {
             MarketRegime.NORMAL: {'gamma': 1.0, 'Q_max': 2.0, 'order_size': 1.0, 'spread': 1.0 * 4},
             MarketRegime.HIGH_VOL: {'gamma': 1.4, 'Q_max': 1.2, 'order_size': 0.5, 'spread': 1.8 * 4},
@@ -589,6 +590,7 @@ class ProfessionalMarketMaker:
                     self.logger.warning("买卖盘数据不完整，跳过")
                     await asyncio.sleep(3)
                     continue
+
 
                 # 构建订单簿
                 min_ask = min(asks)
