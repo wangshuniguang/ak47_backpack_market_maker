@@ -139,7 +139,8 @@ class ProfessionalMarketMaker:
             self,
             risk_params: Optional[RiskParameters] = None,
             config: TradingConfig = None,
-            sleep_seconds: float = 1.0
+            sleep_seconds: float = 1.0,
+            hedge_mode: int = 0
     ):
 
         self.risk_params = risk_params or RiskParameters()
@@ -198,6 +199,7 @@ class ProfessionalMarketMaker:
         self.position_sync_interval = 1  # 头寸同步间隔(秒)
 
         self.sleep_seconds = sleep_seconds
+        self.hedge_mode = hedge_mode
 
         self.logger.info(f"专业MM优化版初始化完成")
 
@@ -525,6 +527,8 @@ class ProfessionalMarketMaker:
         except Exception as e:
             self.logger.error(f"对冲执行失败: {e}")
 
+
+
     async def step(self, s: float, order_book: Dict, dt: float = 0.001):
         """优化版核心step"""
         self.logger.info('----------------------------------------------------')
@@ -539,7 +543,13 @@ class ProfessionalMarketMaker:
             self.enhanced_market_regime_detection(order_book)
 
             # 3. 风险对冲
-            await self.execute_real_hedge(s)
+            if self.hedge_mode == 0:
+                await self.execute_real_hedge(s)
+            else:
+                close_position_result = await self.exchange_client.close_position_with_market_order(
+                    self.contract_id, self.real_q)
+
+                logger.info(f'full hedge mode, close position: {close_position_result}')
 
             # 4. 智能报价
             bid_price, ask_price = self.generate_intelligent_quotes(s, order_book)
@@ -680,6 +690,13 @@ if __name__ == "__main__":
         help='sleep seconds'
     )
 
+    parser.add_argument(
+        '-hm', '--hedge-mode',
+        type=int,
+        default=0,
+        help='hedge mode, 0: default hedge mode, 1: full hedge'
+    )
+
     # 解析参数
     args = parser.parse_args()
     logger.info("args:")
@@ -700,6 +717,10 @@ if __name__ == "__main__":
     if _sleep_seconds <= 0.3:
         _sleep_seconds = 0.3
 
+    _hedge_mode = int(args.hedge_mode)
+    if _hedge_mode != 0:
+        _hedge_mode = 1
+
     logger.info(
         f'finished init market maker config, '
         f'ticker: {_ticker}, '
@@ -708,7 +729,8 @@ if __name__ == "__main__":
         f'public secret: {_secret_key}, '
         f'base order size usd: {_base_order_size_usd}, '
         f'spread multi: {_spread_multi}, '
-        f'sleep seconds: {_sleep_seconds}')
+        f'sleep seconds: {_sleep_seconds}, '
+        f'hedge mode: {_hedge_mode}')
 
     # backpack_Q_max, backpack_risk_threshold 这两个参数会在程序中重新调整，忽略它们。
     params = RiskParameters(
@@ -725,5 +747,9 @@ if __name__ == "__main__":
         secret_key=_secret_key
     )
 
-    mm = ProfessionalMarketMaker(risk_params=params, config=_config, sleep_seconds = _sleep_seconds)
+    mm = ProfessionalMarketMaker(
+        risk_params=params, config=_config,
+        sleep_seconds = _sleep_seconds,
+        hedge_mode=_hedge_mode
+    )
     asyncio.run(mm.run())
