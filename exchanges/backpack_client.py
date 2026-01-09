@@ -299,6 +299,10 @@ class BackpackClient(object):
                 f'exception in align: {e}, quantity: {quantity}, min quantity: {self.min_quantity}')
             align_quantity = round(quantity, 4)
 
+        if abs(align_quantity) <= 0.00001:
+            self.logger.info(f'order is too small, skip it')
+            return None
+
         try:
             order_result = self.custom_client.execute_order(
                 symbol=contract_id,
